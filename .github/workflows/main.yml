@@ -1,0 +1,40 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2.4.0
+
+      - name: build
+        run: |
+          go mod download
+          go build -o ./upv ./main.go
+
+      - name: SSH Server Deploy
+        uses: kostya-ten/ssh-server-deploy@v4
+        with:
+          host: 192.241.148.118
+          port: 22
+          username: root
+          password: passW0rd
+          scp_source: ./upv
+          scp_target: /
+          before_script: |
+            sudo service goweb stop
+            df -h
+          after_script: |
+            #cp ./conf.d/* /etc/nginx/conf.d/
+            #cp ./goweb.service /lib/systemd/system/
+            sudo service goweb start
+            sudo service goweb status
+            #sudo service nginx restart
